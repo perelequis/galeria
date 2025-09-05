@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convenção Partidária - Galeria de Fotos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'laranja': '#ff6b35',
+                        'laranja-claro': '#ff8c69',
+                        'rosa': '#ff69b4',
+                        'rosa-claro': '#ffb6c1'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .foto-item {
+            transition: all 0.3s ease;
+        }
+        .foto-item:hover {
+            transform: scale(1.05);
+        }
+        .modal {
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-laranja-claro via-rosa-claro to-laranja min-h-screen">
+    <!-- Header -->
+    <header class="bg-white/90 backdrop-blur-sm shadow-lg sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-4xl md:text-5xl font-bold text-center bg-gradient-to-r from-laranja to-rosa bg-clip-text text-transparent">
+                Convenção Partidária
+            </h1>
+            <p class="text-center text-gray-600 mt-2 text-lg">Galeria de Momentos Especiais</p>
+        </div>
+    </header>
+
+    <!-- Contador de fotos -->
+    <div class="container mx-auto px-4 py-4">
+        <div class="bg-white/80 rounded-full px-6 py-2 inline-block shadow-md">
+            <span class="text-gray-700 font-medium">📸 Total de fotos: <span id="contador-fotos">0</span></span>
+        </div>
+    </div>
+
+    <!-- Galeria -->
+    <main class="container mx-auto px-4 pb-12">
+        <div id="galeria" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- As fotos serão carregadas aqui -->
+        </div>
+
+        <!-- Mensagem quando não há fotos -->
+        <div id="sem-fotos" class="text-center py-12 hidden">
+            <div class="bg-white/80 rounded-lg p-8 shadow-lg max-w-md mx-auto">
+                <div class="text-6xl mb-4">📁</div>
+                <h3 class="text-xl font-semibold text-gray-700 mb-2">Nenhuma foto encontrada</h3>
+                <p class="text-gray-600">Certifique-se de que a pasta "fotos" contém imagens no mesmo diretório do site.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="bg-white/80 backdrop-blur-sm text-center py-6 mt-8 border-t border-white/30">
+        <p class="text-sm cursor-pointer hover:text-laranja transition-colors" 
+           onclick="window.open('https://instagram.com/perelequis', '_blank')">
+            © <span id="currentYear"></span> Perelequis - Todos os direitos reservados
+        </p>
+    </footer>
+
+    <!-- Modal para visualizar foto ampliada -->
+    <div id="modal" class="fixed inset-0 bg-black/80 modal hidden z-50 flex items-center justify-center p-4">
+        <div class="relative max-w-4xl max-h-full">
+            <button id="fechar-modal" class="absolute -top-4 -right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors z-10">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <img id="modal-img" src="" alt="" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl">
+
+        </div>
+    </div>
+
+    <script>
+        // Lista de extensões de imagem suportadas
+        const extensoesImagem = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+        
+        // Função para verificar se um arquivo é uma imagem
+        function ehImagem(nomeArquivo) {
+            const extensao = nomeArquivo.split('.').pop().toLowerCase();
+            return extensoesImagem.includes(extensao);
+        }
+
+        // Função para obter informações de data do arquivo (simulada)
+        function obterDataArquivo(nomeArquivo) {
+            // Como não podemos acessar metadados reais do arquivo via JavaScript no frontend,
+            // vamos simular baseado no nome do arquivo ou usar a data atual
+            // Em um cenário real, isso seria feito no backend
+            
+            // Tenta extrair data do nome do arquivo (formato: YYYY-MM-DD ou similar)
+            const regexData = /(\d{4})[_-]?(\d{2})[_-]?(\d{2})/;
+            const match = nomeArquivo.match(regexData);
+            
+            if (match) {
+                const [, ano, mes, dia] = match;
+                return new Date(ano, mes - 1, dia);
+            }
+            
+            // Se não encontrar data no nome, usa uma data aleatória para demonstração
+            const dataBase = new Date('2024-01-01');
+            const diasAleatorios = Math.floor(Math.random() * 365);
+            return new Date(dataBase.getTime() + diasAleatorios * 24 * 60 * 60 * 1000);
+        }
+
+        // Lista de fotos de exemplo (em um cenário real, isso viria do servidor)
+        const fotosExemplo = [
+            'foto001.jpg', 'foto002.png', 'foto003.jpg', 'foto004.jpeg',
+            'foto005.jpg', 'foto006.png', 'foto007.jpg', 'foto008.jpg',
+            'foto009.png', 'foto010.jpg', 'foto011.jpeg', 'foto012.jpg'
+        ];
+
+        // Função para carregar e organizar as fotos
+        function carregarFotos() {
+            const galeria = document.getElementById('galeria');
+            const contadorFotos = document.getElementById('contador-fotos');
+            const semFotos = document.getElementById('sem-fotos');
+            
+            // Cria array de fotos com informações
+            const fotos = fotosExemplo.map(nome => ({
+                nome: nome,
+                caminho: `fotos/${nome}`,
+                data: obterDataArquivo(nome)
+            }));
+
+            // Ordena por data (mais antiga para mais recente)
+            fotos.sort((a, b) => a.data - b.data);
+
+            if (fotos.length === 0) {
+                semFotos.classList.remove('hidden');
+                return;
+            }
+
+            contadorFotos.textContent = fotos.length;
+
+            // Cria elementos da galeria
+            fotos.forEach((foto, index) => {
+                const fotoElement = document.createElement('div');
+                fotoElement.className = 'foto-item bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer';
+                
+                fotoElement.innerHTML = `
+                    <div class="aspect-square overflow-hidden">
+                        <img src="${foto.caminho}" 
+                             alt="Foto da Convenção ${index + 1}" 
+                             class="w-full h-full object-cover"
+                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNzBDOTQuNDc3MiA3MCA5MCA3NC40NzcyIDkwIDgwVjEyMEM5MCAxMjUuNTIzIDk0LjQ3NzIgMTMwIDEwMCAxMzBIMTQwQzE0NS41MjMgMTMwIDE1MCAxMjUuNTIzIDE1MCAxMjBWODBDMTUwIDc0LjQ3NzIgMTQ1LjUyMyA3MCA1MCA3MEgxMDBaIiBmaWxsPSIjRDFENUQ5Ii8+CjxjaXJjbGUgY3g9IjEyMCIgY3k9IjEwMCIgcj0iMTUiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTEwNSAxMTVMMTE1IDEwNUwxMzUgMTI1SDE0NVYxMjBIMTA1VjExNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+'; this.alt='Imagem não encontrada';">
+                    </div>
+                `;
+
+                // Adiciona evento de clique para abrir modal
+                fotoElement.addEventListener('click', () => abrirModal(foto));
+                
+                galeria.appendChild(fotoElement);
+            });
+        }
+
+        // Função para abrir modal com foto ampliada
+        function abrirModal(foto) {
+            const modal = document.getElementById('modal');
+            const modalImg = document.getElementById('modal-img');
+
+            modalImg.src = foto.caminho;
+            modalImg.alt = 'Foto da Convenção Partidária';
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Função para fechar modal
+        function fecharModal() {
+            const modal = document.getElementById('modal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Event listeners
+        document.getElementById('fechar-modal').addEventListener('click', fecharModal);
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                fecharModal();
+            }
+        });
+
+        // Fechar modal com ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                fecharModal();
+            }
+        });
+
+        // Carrega as fotos quando a página carrega
+        document.addEventListener('DOMContentLoaded', carregarFotos);
+
+        // Pega o ano atual do sistema e insere no span
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97a8253f0731f1c7',t:'MTc1NzEwMDY3Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
